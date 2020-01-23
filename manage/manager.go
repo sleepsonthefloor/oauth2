@@ -324,10 +324,15 @@ func (m *Manager) GenerateAccessToken(gt oauth2.GrantType, tgr *oauth2.TokenGene
 
 // RefreshAccessToken refreshing an access token
 func (m *Manager) RefreshAccessToken(tgr *oauth2.TokenGenerateRequest) (oauth2.TokenInfo, error) {
+	if tgr.ClientID == "" {
+		return nil, errors.ErrInvalidClient
+	}
 	cli, err := m.GetClient(tgr.ClientID)
 	if err != nil {
 		return nil, err
-	} else if tgr.ClientSecret != cli.GetSecret() {
+	} else if tgr.ClientSecret != "" && tgr.ClientSecret != cli.GetSecret() {
+		// if a clientSecret was sent, verify that as well to at least quasi-match the OAuth2 spec.
+		// Making this optional is the hack that allows public clients to use refresh tokens.
 		return nil, errors.ErrInvalidClient
 	}
 
