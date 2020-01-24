@@ -48,7 +48,7 @@ func ClientFormHandler(r *http.Request) (string, string, error) {
 	clientID := r.Form.Get("client_id")
 	clientSecret := r.Form.Get("client_secret")
 	if clientID == "" || clientSecret == "" {
-		return "", "", errors.ErrInvalidClient
+		return clientID, clientSecret, errors.ErrInvalidClient
 	}
 	return clientID, clientSecret, nil
 }
@@ -57,7 +57,7 @@ func ClientFormHandler(r *http.Request) (string, string, error) {
 func ClientBasicHandler(r *http.Request) (string, string, error) {
 	username, password, ok := r.BasicAuth()
 	if !ok {
-		return "", "", errors.ErrInvalidClient
+		return username, password, errors.ErrInvalidClient
 	}
 	return username, password, nil
 }

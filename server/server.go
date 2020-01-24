@@ -276,19 +276,24 @@ func (s *Server) ValidationTokenRequest(r *http.Request) (oauth2.GrantType, *oau
 		return "", nil, errors.ErrUnsupportedGrantType
 	}
 
-	clientID, clientSecret, err := s.ClientInfoHandler(r)
-	if err != nil {
-		return "", nil, err
+	tgr := &oauth2.TokenGenerateRequest{
+		Request: r,
 	}
 
-	tgr := &oauth2.TokenGenerateRequest{
-		ClientID:     clientID,
-		ClientSecret: clientSecret,
-		Request:      r,
+	getClientInfoFromRequest := func() error {
+		clientID, clientSecret, err := s.ClientInfoHandler(r)
+		// fill these in even if an error is returned, as the refresh grant type ignores the error to allow for an
+		// empty clientSecret
+		tgr.ClientID = clientID
+		tgr.ClientSecret = clientSecret
+		return err
 	}
 
 	switch gt {
 	case oauth2.AuthorizationCode:
+		if err := getClientInfoFromRequest(); err != nil {
+			return "", nil, err
+		}
 		tgr.RedirectURI = r.FormValue("redirect_uri")
 		tgr.Code = r.FormValue("code")
 		if tgr.RedirectURI == "" ||
@@ -296,6 +301,9 @@ func (s *Server) ValidationTokenRequest(r *http.Request) (oauth2.GrantType, *oau
 			return "", nil, errors.ErrInvalidRequest
 		}
 	case oauth2.PasswordCredentials:
+		if err := getClientInfoFromRequest(); err != nil {
+			return "", nil, err
+		}
 		tgr.Scope = r.FormValue("scope")
 		username, password := r.FormValue("username"), r.FormValue("password")
 		if username == "" || password == "" {
@@ -310,8 +318,18 @@ func (s *Server) ValidationTokenRequest(r *http.Request) (oauth2.GrantType, *oau
 		}
 		tgr.UserID = userID
 	case oauth2.ClientCredentials:
+		if err := getClientInfoFromRequest(); err != nil {
+			return "", nil, err
+		}
 		tgr.Scope = r.FormValue("scope")
 	case oauth2.Refreshing:
+		err := getClientInfoFromRequest()
+		// Ignore errors.ErrInvalidClient, as that just means that client credentials weren't sent in the request.
+		// Public clients won't be sending a client secret, so we need to let them proceed here.
+		// ClientID will be checked for presence and validated within Manager.RefreshAccessToken
+		if err != nil && err != errors.ErrInvalidClient {
+			return "", nil, err
+		}
 		tgr.Refresh = r.FormValue("refresh_token")
 		tgr.Scope = r.FormValue("scope")
 		if tgr.Refresh == "" {
