@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/dgrijalva/jwt-go"
+	"github.com/form3tech-oss/jwt-go"
 	"gopkg.in/oauth2.v3"
 	"gopkg.in/oauth2.v3/generates"
 	"gopkg.in/oauth2.v3/models"
@@ -44,7 +44,8 @@ func TestJWTAccess(t *testing.T) {
 		claims, ok := token.Claims.(*generates.JWTAccessClaims)
 		So(ok, ShouldBeTrue)
 		So(token.Valid, ShouldBeTrue)
-		So(claims.Audience, ShouldEqual, "123456")
+		So(claims.Audience[0], ShouldEqual, "123456")
+		So(len(claims.Audience), ShouldEqual, 1)
 		So(claims.Subject, ShouldEqual, "000000")
 	})
 }

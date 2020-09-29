@@ -7,7 +7,7 @@ import (
 
 	errs "errors"
 
-	"github.com/dgrijalva/jwt-go"
+	"github.com/form3tech-oss/jwt-go"
 	"gopkg.in/oauth2.v3"
 	"gopkg.in/oauth2.v3/errors"
 	"gopkg.in/oauth2.v3/utils/uuid"
@@ -44,7 +44,7 @@ type JWTAccessGenerate struct {
 func (a *JWTAccessGenerate) Token(data *oauth2.GenerateBasic, isGenRefresh bool) (string, string, error) {
 	claims := &JWTAccessClaims{
 		StandardClaims: jwt.StandardClaims{
-			Audience:  data.Client.GetID(),
+			Audience:  []string{data.Client.GetID()},
 			Subject:   data.UserID,
 			ExpiresAt: data.TokenInfo.GetAccessCreateAt().Add(data.TokenInfo.GetAccessExpiresIn()).Unix(),
 		},
